@@ -11,13 +11,15 @@ import {
   ChevronRight, 
   FolderPlus,
   LayoutGrid,
-  Sparkles
+  Sparkles,
+  LayoutTemplate
 } from 'lucide-react';
 
 export default function Sidebar({ 
   folders = [], 
   onNewFile, 
   onNewFolder, 
+  onOpenTemplateGallery,
   activeRoute = 'all',
   currentFolderId = null 
 }) {
@@ -125,6 +127,31 @@ export default function Sidebar({
             <Clock size={16} />
             <span>Recents</span>
           </Link>
+
+          {onOpenTemplateGallery && (
+            <button
+              onClick={onOpenTemplateGallery}
+              className="btn-ghost"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                padding: '8px 12px',
+                borderRadius: 'var(--radius-sm)',
+                fontSize: '13px',
+                fontWeight: 500,
+                width: '100%',
+                border: 'none',
+                backgroundColor: 'transparent',
+                color: 'var(--text-secondary)',
+                cursor: 'pointer',
+                textAlign: 'left'
+              }}
+            >
+              <LayoutTemplate size={16} color="#60A5FA" />
+              <span>Templates</span>
+            </button>
+          )}
         </div>
 
         {/* Folders Section */}

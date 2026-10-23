@@ -9,6 +9,7 @@ import {
   MoveModal, 
   ConfirmDeleteModal 
 } from './DashboardModals';
+import TemplateGalleryModal from './TemplateGalleryModal';
 import { 
   Search, 
   Plus, 
@@ -18,7 +19,8 @@ import {
   Sparkles,
   Grid,
   List as ListIcon,
-  FolderPlus
+  FolderPlus,
+  LayoutTemplate
 } from 'lucide-react';
 import { 
   listFiles as apiListFiles, 
@@ -44,6 +46,7 @@ export default function DashboardView({
   // Modals state
   const [showCreateFile, setShowCreateFile] = useState(false);
   const [showCreateFolder, setShowCreateFolder] = useState(false);
+  const [showTemplateGallery, setShowTemplateGallery] = useState(false);
   const [fileToRename, setFileToRename] = useState(null);
   const [fileToMove, setFileToMove] = useState(null);
   const [fileToDelete, setFileToDelete] = useState(null);
@@ -206,6 +209,7 @@ export default function DashboardView({
         currentFolderId={folderId}
         onNewFile={() => setShowCreateFile(true)}
         onNewFolder={() => setShowCreateFolder(true)}
+        onOpenTemplateGallery={() => setShowTemplateGallery(true)}
       />
 
       {/* Main Content Area */}
@@ -262,6 +266,17 @@ export default function DashboardView({
 
           {/* Quick Header Actions */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <button 
+              id="btn-open-template-gallery"
+              onClick={() => setShowTemplateGallery(true)}
+              className="btn btn-secondary"
+              style={{ height: '36px', gap: '6px' }}
+              title="Browse reference templates"
+            >
+              <LayoutTemplate size={15} color="#60A5FA" />
+              <span>Templates</span>
+            </button>
+
             <button 
               onClick={() => setShowCreateFile(true)}
               className="btn btn-primary"
@@ -441,6 +456,11 @@ export default function DashboardView({
         onClose={() => setFolderToDelete(null)}
         onConfirm={handleDeleteFolder}
         itemName={`folder "${folderToDelete?.name}"`}
+      />
+
+      <TemplateGalleryModal
+        isOpen={showTemplateGallery}
+        onClose={() => setShowTemplateGallery(false)}
       />
     </div>
   );

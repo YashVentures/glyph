@@ -10,6 +10,7 @@ import CodeDrawer from '../../components/editor/CodeDrawer';
 import VersionHistoryDrawer from '../../components/editor/VersionHistoryDrawer';
 import AIPromptModal from '../../components/editor/AIPromptModal';
 import ExportModal from '../../components/editor/ExportModal';
+import ShareModal from '../../components/editor/ShareModal';
 import { getFile, updateFile } from '@/lib/api/client';
 import { AlertTriangle, RotateCcw, X, Eye, Sparkles } from 'lucide-react';
 
@@ -43,6 +44,9 @@ export default function WorkspacePage() {
 
   // Step 8: Client-side Export modal state
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+
+  // Step 9: View-only Share modal state
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
   // Browser keepalive limit is ~64KB. Keep a safe headroom limit.
   const KEEPALIVE_CAP_BYTES = 60 * 1024; // 60 KB
@@ -460,6 +464,7 @@ export default function WorkspacePage() {
         onToggleVersions={() => setIsVersionsOpen(!isVersionsOpen)}
         onOpenAIModal={() => setIsAIModalOpen(true)}
         onOpenExportModal={() => setIsExportModalOpen(true)}
+        onOpenShareModal={() => setIsShareModalOpen(true)}
       />
 
       {/* Version Preview Mode Banner (Read Only) */}
@@ -687,6 +692,15 @@ export default function WorkspacePage() {
         canvasData={canvasData}
         selectedDiagramId={selectedDiagramId}
         docContent={docContent}
+      />
+
+      {/* Step 9: View-Only Share Modal */}
+      <ShareModal
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+        fileId={file?.id}
+        fileTitle={file?.title}
+        diagrams={diagrams}
       />
     </div>
   );

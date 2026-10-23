@@ -67,7 +67,7 @@ class MockCollection:
                 matched.append(dict(d))
         return MockCursor(matched)
 
-    async def update_one(self, query, update):
+    async def update_one(self, query, update, upsert=False):
         set_vals = update.get("$set", {})
         for d in self.docs:
             match = True
@@ -77,8 +77,13 @@ class MockCollection:
                     break
             if match:
                 d.update(set_vals)
-                return type("Result", (), {"modified_count": 1})()
-        return type("Result", (), {"modified_count": 0})()
+                return type("Result", (), {"modified_count": 1, "matched_count": 1, "upserted_id": None})()
+        if upsert:
+            new_doc = dict(query)
+            new_doc.update(set_vals)
+            self.docs.append(new_doc)
+            return type("Result", (), {"modified_count": 0, "matched_count": 0, "upserted_id": new_doc.get("id")})()
+        return type("Result", (), {"modified_count": 0, "matched_count": 0, "upserted_id": None})()
 
     async def update_many(self, query, update):
         set_vals = update.get("$set", {})

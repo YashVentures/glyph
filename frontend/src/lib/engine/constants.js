@@ -143,3 +143,31 @@ export const ICONS = {
   'aws-lambda': '<path d="M4 20h4l5-12h7"/><path d="m14 14 6 6"/>',
   'aws-route53': '<circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/>'
 };
+
+// ==============================================================================
+// Workspace Custom Icons Dynamic Registry
+// ==============================================================================
+let customIconsRegistry = {};
+
+export function setCustomIcons(icons) {
+  if (Array.isArray(icons)) {
+    customIconsRegistry = {};
+    for (const item of icons) {
+      if (item && item.name && (item.svg_content || item.svgContent)) {
+        customIconsRegistry[item.name.toLowerCase()] = item.svg_content || item.svgContent;
+      }
+    }
+  } else if (icons && typeof icons === 'object') {
+    customIconsRegistry = { ...icons };
+  }
+}
+
+export function getCustomIcon(name) {
+  if (!name) return null;
+  return customIconsRegistry[name.toLowerCase()] || null;
+}
+
+export function getAllCustomIcons() {
+  return { ...customIconsRegistry };
+}
+

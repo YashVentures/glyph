@@ -81,11 +81,16 @@ def test_icon_sanitization(client):
     res = client.post("/api/v1/icons", json={"name": "valid-icon", "svgContent": valid_svg})
     assert res.status_code == 201
 
-    # Malicious SVG with script tag
+    # Malicious SVG with script tag - script should be stripped
     bad_svg = '<svg><script>alert("xss")</script><circle cx="5" cy="5" r="5"/></svg>'
     res = client.post("/api/v1/icons", json={"name": "bad-icon", "svgContent": bad_svg})
-    assert res.status_code == 400
-    assert "Dangerous script tags" in res.json()["error"]["message"]
+    assert res.status_code == 201
+    assert "<script" not in res.json()["icon"]["svg_content"].lower()
+
+    # Malicious SVG with javascript: URL - rejected with 400
+    js_svg = '<svg><a href="javascript:alert(1)"><circle cx="5" cy="5" r="5"/></a></svg>'
+    res_js = client.post("/api/v1/icons", json={"name": "bad-js-icon", "svgContent": js_svg})
+    assert res_js.status_code == 400
 
 def test_templates_endpoint(client):
     res = client.get("/api/v1/templates")

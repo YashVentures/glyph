@@ -5,6 +5,9 @@ class CustomIconCreate(BaseModel):
     name: str
     svgContent: str
 
+class CustomIconRename(BaseModel):
+    name: str
+
 class CustomIconItem(BaseModel):
     id: str
     name: str

@@ -13,7 +13,8 @@ import {
 export default function DocPane({
   docContent,
   onChange,
-  fileTitle
+  fileTitle,
+  readOnly = false
 }) {
   const textareaRef = useRef(null);
 
@@ -70,75 +71,83 @@ export default function DocPane({
           <span>NOTES</span>
         </div>
 
-        <button 
-          type="button"
-          onClick={() => insertToken('**', '**')}
-          className="btn-icon"
-          title="Bold (**text**)"
-          style={{ width: '28px', height: '28px' }}
-        >
-          <Bold size={13} />
-        </button>
+        {readOnly ? (
+          <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+            Document is in read-only mode
+          </span>
+        ) : (
+          <>
+            <button 
+              type="button"
+              onClick={() => insertToken('**', '**')}
+              className="btn-icon"
+              title="Bold (**text**)"
+              style={{ width: '28px', height: '28px' }}
+            >
+              <Bold size={13} />
+            </button>
 
-        <button 
-          type="button"
-          onClick={() => insertToken('*', '*')}
-          className="btn-icon"
-          title="Italic (*text*)"
-          style={{ width: '28px', height: '28px' }}
-        >
-          <Italic size={13} />
-        </button>
+            <button 
+              type="button"
+              onClick={() => insertToken('*', '*')}
+              className="btn-icon"
+              title="Italic (*text*)"
+              style={{ width: '28px', height: '28px' }}
+            >
+              <Italic size={13} />
+            </button>
 
-        <button 
-          type="button"
-          onClick={() => insertToken('\n# ')}
-          className="btn-icon"
-          title="Heading 1 (# Heading)"
-          style={{ width: '28px', height: '28px' }}
-        >
-          <Heading1 size={14} />
-        </button>
+            <button 
+              type="button"
+              onClick={() => insertToken('\n# ')}
+              className="btn-icon"
+              title="Heading 1 (# Heading)"
+              style={{ width: '28px', height: '28px' }}
+            >
+              <Heading1 size={14} />
+            </button>
 
-        <button 
-          type="button"
-          onClick={() => insertToken('\n## ')}
-          className="btn-icon"
-          title="Heading 2 (## Heading)"
-          style={{ width: '28px', height: '28px' }}
-        >
-          <Heading2 size={14} />
-        </button>
+            <button 
+              type="button"
+              onClick={() => insertToken('\n## ')}
+              className="btn-icon"
+              title="Heading 2 (## Heading)"
+              style={{ width: '28px', height: '28px' }}
+            >
+              <Heading2 size={14} />
+            </button>
 
-        <button 
-          type="button"
-          onClick={() => insertToken('\n- ')}
-          className="btn-icon"
-          title="Bullet List (- item)"
-          style={{ width: '28px', height: '28px' }}
-        >
-          <List size={14} />
-        </button>
+            <button 
+              type="button"
+              onClick={() => insertToken('\n- ')}
+              className="btn-icon"
+              title="Bullet List (- item)"
+              style={{ width: '28px', height: '28px' }}
+            >
+              <List size={14} />
+            </button>
 
-        <button 
-          type="button"
-          onClick={() => insertToken('\n```\n', '\n```\n')}
-          className="btn-icon"
-          title="Code Block (```code```)"
-          style={{ width: '28px', height: '28px' }}
-        >
-          <Code size={13} />
-        </button>
+            <button 
+              type="button"
+              onClick={() => insertToken('\n```\n', '\n```\n')}
+              className="btn-icon"
+              title="Code Block (```code```)"
+              style={{ width: '28px', height: '28px' }}
+            >
+              <Code size={13} />
+            </button>
 
-        <button 
-          type="button"
-          onClick={() => insertToken('\n> ')}
-          className="btn-icon"
-          title="Blockquote (> text)"
-          style={{ width: '28px', height: '28px' }}
-        >
-          <Quote size={13} />
-        </button>
+            <button 
+              type="button"
+              onClick={() => insertToken('\n> ')}
+              className="btn-icon"
+              title="Blockquote (> text)"
+              style={{ width: '28px', height: '28px' }}
+            >
+              <Quote size={13} />
+            </button>
+          </>
+        )}
       </div>
 
       {/* Editor Body */}
@@ -149,9 +158,10 @@ export default function DocPane({
       }}>
         <textarea
           ref={textareaRef}
+          readOnly={readOnly}
           value={docContent || ''}
-          onChange={e => onChange(e.target.value)}
-          placeholder="# Start typing your document notes here..."
+          onChange={readOnly ? undefined : e => onChange(e.target.value)}
+          placeholder={readOnly ? 'No notes in this document.' : '# Start typing your document notes here...'}
           style={{
             width: '100%',
             height: '100%',

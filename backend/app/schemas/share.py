@@ -14,6 +14,7 @@ class ShareLinkItem(BaseModel):
     target_figure_id: Optional[str] = None
     target_elements: Optional[List[str]] = None
     is_public: bool = True
+    is_active: bool = True
     created_at: int
 
 class ShareLinkResponse(BaseModel):

@@ -20,6 +20,9 @@ import {
 } from 'lucide-react';
 import { parseDiagram } from '../../lib/engine/parser.js';
 import { renderDiagramToSVG } from '../../lib/engine/renderer.js';
+import { setCustomIcons } from '../../lib/engine/constants.js';
+import { listIcons } from '../../lib/api/client';
+import CustomIconModal from './CustomIconModal';
 import { 
   updateLabelAtLine, 
   updateColorAtLine, 
@@ -68,6 +71,21 @@ export default function CanvasPane({
 
   // Selected element state for canvas interactions & style panel
   const [selectedElement, setSelectedElement] = useState(null);
+
+  // Custom icons state & modal
+  const [customIcons, setCustomIconsList] = useState([]);
+  const [isCustomIconModalOpen, setIsCustomIconModalOpen] = useState(false);
+
+  useEffect(() => {
+    listIcons()
+      .then(res => {
+        if (res.success && res.icons) {
+          setCustomIconsList(res.icons);
+          setCustomIcons(res.icons);
+        }
+      })
+      .catch(err => console.error('Failed to load custom icons:', err));
+  }, []);
 
   const diagrams = canvasData?.diagrams || [];
 
@@ -490,11 +508,23 @@ export default function CanvasPane({
                 onUpdateShape={handleUpdateShape}
                 onUpdateIcon={handleUpdateIcon}
                 onDeleteElement={handleDeleteElement}
+                customIcons={customIcons}
+                onOpenCustomIconModal={() => setIsCustomIconModalOpen(true)}
               />
             </div>
           );
         })}
       </div>
+
+      {/* Step 10: Custom Icon Management Modal */}
+      <CustomIconModal
+        isOpen={isCustomIconModalOpen}
+        onClose={() => setIsCustomIconModalOpen(false)}
+        onIconsUpdated={(updated) => {
+          setCustomIconsList(updated);
+          setCustomIcons(updated);
+        }}
+      />
     </div>
   );
 }
@@ -510,7 +540,9 @@ function DiagramCardBody({
   onUpdateColor,
   onUpdateShape,
   onUpdateIcon,
-  onDeleteElement
+  onDeleteElement,
+  customIcons = [],
+  onOpenCustomIconModal
 }) {
   const lastGoodAstRef = useRef(null);
   const lastGoodSvgRef = useRef(null);
@@ -525,7 +557,7 @@ function DiagramCardBody({
   const svgHtml = useMemo(() => {
     if (!hasParseErrors) {
       try {
-        const rendered = renderDiagramToSVG(ast, { theme: 'dark' });
+        const rendered = renderDiagramToSVG(ast, { theme: 'dark', customIcons });
         lastGoodAstRef.current = ast;
         lastGoodSvgRef.current = rendered;
         return rendered;
@@ -646,6 +678,8 @@ function DiagramCardBody({
           onUpdateShape={onUpdateShape}
           onUpdateIcon={onUpdateIcon}
           onDeleteElement={onDeleteElement}
+          customIcons={customIcons}
+          onOpenCustomIconModal={onOpenCustomIconModal}
         />
       )}
 
@@ -714,7 +748,9 @@ function FloatingStylePanel({
   onUpdateColor,
   onUpdateShape,
   onUpdateIcon,
-  onDeleteElement
+  onDeleteElement,
+  customIcons = [],
+  onOpenCustomIconModal
 }) {
   const [labelValue, setLabelValue] = useState(selectedElement.label || '');
 
@@ -856,24 +892,47 @@ function FloatingStylePanel({
 
       {/* Icon Selector (if node) */}
       {allowsIcons && (
-        <select
-          value={selectedElement.icon || ''}
-          onChange={(e) => onUpdateIcon(e.target.value || null)}
-          style={{
-            height: '24px',
-            backgroundColor: 'var(--bg-surface)',
-            border: '1px solid var(--border-subtle)',
-            borderRadius: '4px',
-            color: 'var(--text-primary)',
-            fontSize: '11px',
-            padding: '0 4px'
-          }}
-        >
-          <option value="">No Icon</option>
-          {ICON_OPTIONS.map((ic) => (
-            <option key={ic} value={ic}>{ic}</option>
-          ))}
-        </select>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <select
+            value={selectedElement.icon || ''}
+            onChange={(e) => onUpdateIcon(e.target.value || null)}
+            style={{
+              height: '24px',
+              backgroundColor: 'var(--bg-surface)',
+              border: '1px solid var(--border-subtle)',
+              borderRadius: '4px',
+              color: 'var(--text-primary)',
+              fontSize: '11px',
+              padding: '0 4px',
+              maxWidth: '120px'
+            }}
+          >
+            <option value="">No Icon</option>
+            <optgroup label="Bundled Icons">
+              {ICON_OPTIONS.map((ic) => (
+                <option key={ic} value={ic}>{ic}</option>
+              ))}
+            </optgroup>
+            {customIcons && customIcons.length > 0 && (
+              <optgroup label="Custom Icons">
+                {customIcons.map(ci => (
+                  <option key={ci.id} value={ci.name}>{ci.name}</option>
+                ))}
+              </optgroup>
+            )}
+          </select>
+          {onOpenCustomIconModal && (
+            <button
+              type="button"
+              onClick={onOpenCustomIconModal}
+              className="btn-icon"
+              title="Upload & Manage Custom Icons"
+              style={{ width: '22px', height: '22px', borderRadius: '4px', color: '#F59E0B' }}
+            >
+              <Smile size={12} />
+            </button>
+          )}
+        </div>
       )}
 
       {/* Delete Element Button */}

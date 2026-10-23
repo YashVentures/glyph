@@ -247,20 +247,46 @@ export async function restoreVersion(
 
 /* ==========================================================================
    SHARE API
+/* ==========================================================================
+   SHARE API
    ========================================================================== */
 
-export async function createShareLink(
-  fileId: string,
-  permission: 'view' | 'edit' = 'view'
-): Promise<{ success: boolean; share: ShareLinkItem }> {
+export async function createShareLink(data: {
+  fileId: string;
+  targetDiagramId?: string;
+  targetFigureId?: string;
+  targetElements?: string[];
+}): Promise<{ success: boolean; share: ShareLinkItem; shareUrl: string }> {
   return apiRequest('/share', {
     method: 'POST',
-    body: JSON.stringify({ fileId, permission })
+    body: JSON.stringify(data)
   });
 }
 
-export async function getShareLink(token: string): Promise<{ success: boolean; file: FileItem; permission: string }> {
-  return apiRequest(`/share/${encodeURIComponent(token)}`);
+export async function getShareLinkForFile(fileId: string): Promise<{
+  success: boolean;
+  share: ShareLinkItem | null;
+  shareUrl: string | null;
+}> {
+  return apiRequest(`/share/file/${encodeURIComponent(fileId)}`);
+}
+
+export async function getShareLink(
+  token: string,
+  params: { diagram?: string; figure?: string; elements?: string } = {}
+): Promise<{ success: boolean; file: FileItem; share: any }> {
+  const q = new URLSearchParams();
+  if (params.diagram) q.set('diagram', params.diagram);
+  if (params.figure) q.set('figure', params.figure);
+  if (params.elements) q.set('elements', params.elements);
+  const qs = q.toString();
+  return apiRequest(`/share/${encodeURIComponent(token)}${qs ? `?${qs}` : ''}`);
+}
+
+export async function revokeShareLink(shareId: string): Promise<{ success: boolean; message: string }> {
+  return apiRequest(`/share/${encodeURIComponent(shareId)}`, {
+    method: 'DELETE'
+  });
 }
 
 /* ==========================================================================
@@ -281,8 +307,17 @@ export async function uploadIcon(
   });
 }
 
-export async function getIcon(name: string): Promise<{ success: boolean; icon: IconItem }> {
-  return apiRequest(`/icons/${encodeURIComponent(name)}`);
+export async function renameIcon(iconId: string, name: string): Promise<{ success: boolean; icon: IconItem }> {
+  return apiRequest(`/icons/${encodeURIComponent(iconId)}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ name })
+  });
+}
+
+export async function deleteIcon(iconId: string): Promise<{ success: boolean; message: string }> {
+  return apiRequest(`/icons/${encodeURIComponent(iconId)}`, {
+    method: 'DELETE'
+  });
 }
 
 /* ==========================================================================

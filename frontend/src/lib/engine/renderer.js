@@ -1,7 +1,16 @@
 import dagre from 'dagre';
-import { PALETTE, ICONS, getNodeColors } from './constants.js';
+import { PALETTE, ICONS, getNodeColors, getCustomIcon } from './constants.js';
+import { parseDiagram } from './parser.js';
 
 export function renderDiagramToSVG(astOrResult, options = {}) {
+  // If string code is passed, automatically parse it
+  if (typeof astOrResult === 'string') {
+    const diagType = typeof options === 'string' ? options : (options.diagramType || 'flowchart-diagram');
+    const opts = typeof options === 'object' ? options : {};
+    const parsed = parseDiagram(astOrResult, diagType);
+    return renderDiagramToSVG(parsed, opts);
+  }
+
   const {
     padding = 40,
     theme = 'dark'
@@ -15,22 +24,23 @@ export function renderDiagramToSVG(astOrResult, options = {}) {
 
   switch (ast.type) {
     case 'sequence-diagram':
-      return renderSequenceSVG(ast, { padding, theme });
+      return renderSequenceSVG(ast, { padding, theme, ...options });
 
     case 'erd-diagram':
-      return renderErdSVG(ast, { padding, theme });
+      return renderErdSVG(ast, { padding, theme, ...options });
 
     case 'cloud-architecture-diagram':
     case 'flowchart-diagram':
     default:
-      return renderFlowchartSVG(ast, { padding, theme });
+      return renderFlowchartSVG(ast, { padding, theme, ...options });
   }
 }
 
 // ----------------------------------------------------
 // 1. FLOWCHART & CLOUD ARCHITECTURE RENDERER
 // ----------------------------------------------------
-function renderFlowchartSVG(ast, { padding, theme }) {
+function renderFlowchartSVG(ast, options = {}) {
+  const { padding = 40, theme = 'dark', customIcons = {} } = options;
   const g = new dagre.graphlib.Graph({ compound: true });
   const isLR = ast.direction === 'right';
   const rankDir = {
@@ -227,13 +237,27 @@ function renderFlowchartSVG(ast, { padding, theme }) {
          ${filterAttr}
       >
         ${renderShapeSvg(nodeData.shape, nw, nh, color, ast.typeface)}
-        ${nodeData.icon && ICONS[nodeData.icon] ? `
-          <g transform="translate(14, ${(nh - 20) / 2}) scale(0.85)" stroke="${color.stroke}" stroke-width="2" fill="none" data-icon="${escapeXml(nodeData.icon)}">
-            ${ICONS[nodeData.icon]}
-          </g>
-        ` : ''}
+        ${(() => {
+          // Collision Rule: Workspace custom icons take precedence over bundled icons
+          const customSvg = (customIcons && customIcons[nodeData.icon]) || getCustomIcon(nodeData.icon);
+          if (customSvg) {
+            return `
+              <image href="data:image/svg+xml;utf8,${encodeURIComponent(customSvg)}" 
+                     x="14" y="${(nh - 20) / 2}" width="20" height="20" 
+                     data-custom-icon="${escapeXml(nodeData.icon)}"/>
+            `;
+          } else if (nodeData.icon && ICONS[nodeData.icon]) {
+            return `
+              <g transform="translate(14, ${(nh - 20) / 2}) scale(0.85)" stroke="${color.stroke}" stroke-width="2" fill="none" data-icon="${escapeXml(nodeData.icon)}">
+                ${ICONS[nodeData.icon]}
+              </g>
+            `;
+          }
+          // Unknown icon name degrades gracefully without crashing render
+          return '';
+        })()}
         <text 
-          x="${nodeData.icon ? nw / 2 + 10 : nw / 2}" 
+          x="${Boolean((customIcons && customIcons[nodeData.icon]) || getCustomIcon(nodeData.icon) || (nodeData.icon && ICONS[nodeData.icon])) ? nw / 2 + 10 : nw / 2}" 
           y="${nh / 2 + 5}"
           text-anchor="middle"
           fill="${color.text}"

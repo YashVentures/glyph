@@ -50,6 +50,9 @@ async def lifespan(app: FastAPI):
         ins = db.files.insert_one(starter_file)
         if hasattr(ins, "__await__"):
             await ins
+
+    # Idempotently seed reference templates on startup
+    await templates.seed_templates_idempotent(db)
     yield
     await close_database()
 

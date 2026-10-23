@@ -33,7 +33,8 @@ export default function EditorHeader({
   isVersionsOpen = false,
   onToggleVersions,
   onOpenAIModal,
-  onOpenExportModal
+  onOpenExportModal,
+  onOpenShareModal
 }) {
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleValue, setTitleValue] = useState(file?.title || 'Untitled');
@@ -298,6 +299,27 @@ export default function EditorHeader({
         >
           <Download size={14} />
           <span>Export</span>
+        </button>
+
+        {/* Share View-Only Modal Button */}
+        <button
+          id="btn-open-share-modal"
+          onClick={onOpenShareModal}
+          className="btn"
+          style={{
+            height: '32px',
+            padding: '0 10px',
+            fontSize: '12px',
+            fontWeight: 500,
+            backgroundColor: 'var(--bg-surface)',
+            color: 'var(--text-primary)',
+            borderColor: 'var(--border-subtle)',
+            gap: '6px'
+          }}
+          title="Share View-Only Link"
+        >
+          <Share2 size={14} />
+          <span>Share</span>
         </button>
 
         {/* Version History Toggle Button */}
