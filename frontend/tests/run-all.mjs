@@ -14,7 +14,10 @@ const TEST_FILES = [
   'export.test.mjs',
   'sharing.test.mjs',
   'custom-icons.test.mjs',
-  'template-gallery.test.mjs'
+  'template-gallery.test.mjs',
+  'parser-stress-fuzz.test.mjs',
+  'performance-budget.test.mjs',
+  'undo-redo.test.mjs'
 ];
 
 async function runTestFile(file) {

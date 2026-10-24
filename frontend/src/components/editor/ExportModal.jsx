@@ -152,6 +152,7 @@ export default function ExportModal({
             </h3>
           </div>
           <button 
+            id="btn-close-export-modal"
             onClick={onClose}
             className="btn-icon"
             style={{ width: '28px', height: '28px' }}
@@ -213,6 +214,7 @@ export default function ExportModal({
               {availableFormats.map(f => (
                 <button
                   key={f}
+                  id={`btn-export-format-${f.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}`}
                   type="button"
                   onClick={() => setFormat(f)}
                   style={{
@@ -328,6 +330,7 @@ export default function ExportModal({
           gap: '8px'
         }}>
           <button
+            id="btn-cancel-export-modal"
             type="button"
             onClick={onClose}
             className="btn"

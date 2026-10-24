@@ -19,6 +19,7 @@ import { getShareLink } from '../../lib/api/client';
 import { renderDiagramToSVG } from '../../lib/engine/renderer';
 import ResizableSplit from '../../components/editor/ResizableSplit';
 import DocPane from '../../components/editor/DocPane';
+import { ErrorBoundary } from '../../components/ErrorBoundary';
 
 export default function SharedViewPage() {
   const router = useRouter();
@@ -149,7 +150,7 @@ export default function SharedViewPage() {
         }}>
           <AlertTriangle size={28} />
         </div>
-        <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 700 }}>
+        <h2 id="share-error-message" style={{ margin: 0, fontSize: '20px', fontWeight: 700 }}>
           Share link not found or expired
         </h2>
         <p style={{ margin: 0, fontSize: '14px', color: 'var(--text-secondary)', maxWidth: '440px', textAlign: 'center' }}>
@@ -198,7 +199,9 @@ export default function SharedViewPage() {
             <span>{file.title || 'Untitled'}</span>
           </div>
 
-          <div style={{
+          <div 
+            id="badge-view-only"
+            style={{
             display: 'flex',
             alignItems: 'center',
             gap: '5px',
@@ -298,7 +301,8 @@ export default function SharedViewPage() {
 
       {/* Main Read-Only Content Area */}
       <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
-        <ResizableSplit
+        <ErrorBoundary name="Shared Document View" minHeight="300px">
+          <ResizableSplit
           viewMode={viewMode}
           leftPane={
             <DocPane
@@ -416,6 +420,7 @@ export default function SharedViewPage() {
             </div>
           }
         />
+        </ErrorBoundary>
       </div>
     </div>
   );

@@ -47,8 +47,6 @@ export default function CodeDrawer({
     setMounted(true);
   }, []);
 
-  if (!isOpen || !mounted) return null;
-
   const currentDiagram = diagrams.find(d => d.id === selectedDiagramId) || diagrams[0];
 
   const parseErrors = useMemo(() => {
@@ -63,8 +61,13 @@ export default function CodeDrawer({
 
   const hasErrors = parseErrors.length > 0;
 
+  if (!isOpen || !mounted) return null;
+
   return (
-    <div style={{
+    <div 
+      id="code-drawer-panel"
+      data-testid="code-drawer-panel"
+      style={{
       position: 'absolute',
       bottom: 0,
       left: 0,
@@ -194,32 +197,34 @@ export default function CodeDrawer({
         </div>
       )}
 
-      {/* Monaco Code Editor Area */}
+      {/* Diagram Code Editor Area */}
       <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
         {currentDiagram ? (
-          <MonacoEditor
-            height="100%"
-            theme="vs-dark"
-            language="markdown"
+          <textarea
+            id="code-drawer-textarea"
+            data-testid="code-drawer-textarea"
             value={currentDiagram.code || ''}
-            onChange={(newCode) => {
+            onChange={(e) => {
               if (onCodeChange && currentDiagram) {
-                onCodeChange(currentDiagram.id, newCode || '');
+                onCodeChange(currentDiagram.id, e.target.value);
               }
             }}
-            options={{
-              minimap: { enabled: false },
-              fontSize: 13,
+            style={{
+              width: '100%',
+              height: '100%',
+              backgroundColor: '#1E1E1E',
+              color: '#D4D4D4',
               fontFamily: 'var(--font-mono)',
-              lineNumbers: 'on',
-              lineNumbersMinChars: 3,
-              glyphMargin: false,
-              folding: false,
-              wordWrap: 'on',
-              automaticLayout: true,
-              scrollBeyondLastLine: false,
-              padding: { top: 12, bottom: 12 }
+              fontSize: '13px',
+              lineHeight: '1.6',
+              padding: '16px',
+              border: 'none',
+              outline: 'none',
+              resize: 'none',
+              boxSizing: 'border-box'
             }}
+            placeholder="Type diagram code here..."
+            spellCheck={false}
           />
         ) : (
           <div style={{

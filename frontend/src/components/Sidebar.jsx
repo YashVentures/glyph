@@ -78,6 +78,7 @@ export default function Sidebar({
       {/* Primary Action Button */}
       <div style={{ padding: '16px 16px 8px 16px' }}>
         <button 
+          id="btn-sidebar-new-file"
           onClick={onNewFile}
           className="btn btn-primary"
           style={{ width: '100%', height: '38px', borderRadius: 'var(--radius-md)' }}

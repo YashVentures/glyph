@@ -94,7 +94,10 @@ export default function VersionHistoryDrawer({
   if (!isOpen) return null;
 
   return (
-    <div style={{
+    <div 
+      id="version-history-drawer"
+      data-testid="version-history-drawer"
+      style={{
       position: 'absolute',
       top: 0,
       right: 0,
@@ -142,6 +145,7 @@ export default function VersionHistoryDrawer({
       }}>
         <form onSubmit={handleCreateNamedVersion} style={{ display: 'flex', gap: '8px' }}>
           <input
+            id="input-new-version-name"
             type="text"
             value={newVersionName}
             onChange={(e) => setNewVersionName(e.target.value)}
@@ -158,6 +162,7 @@ export default function VersionHistoryDrawer({
             }}
           />
           <button
+            id="btn-save-named-version"
             type="submit"
             disabled={savingVersion}
             className="btn btn-primary"
@@ -333,6 +338,7 @@ export default function VersionHistoryDrawer({
                 Cancel
               </button>
               <button
+                id="btn-confirm-restore"
                 onClick={handleConfirmRestore}
                 disabled={!!restoringId}
                 className="btn btn-primary"

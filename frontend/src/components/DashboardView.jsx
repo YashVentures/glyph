@@ -278,6 +278,7 @@ export default function DashboardView({
             </button>
 
             <button 
+              id="btn-create-file-dashboard"
               onClick={() => setShowCreateFile(true)}
               className="btn btn-primary"
               style={{ height: '36px' }}

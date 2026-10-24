@@ -28,6 +28,7 @@ export default function EditorHeader({
   diagramCount = 1,
   activeDiagramId,
   saveStatus = 'saved', // 'saving' | 'saved' | 'error' | 'conflict'
+  onManualSave,
   onRetrySave,
   onResolveConflict,
   isVersionsOpen = false,
@@ -79,6 +80,7 @@ export default function EditorHeader({
 
         {editingTitle ? (
           <input
+            id="file-title-input"
             type="text"
             autoFocus
             value={titleValue}
@@ -101,6 +103,7 @@ export default function EditorHeader({
           />
         ) : (
           <div 
+            id="file-title-display"
             onClick={() => setEditingTitle(true)}
             title="Click to rename"
             style={{
@@ -122,8 +125,25 @@ export default function EditorHeader({
           </div>
         )}
 
-        {/* Autosave Status Indicator */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', fontFamily: 'var(--font-mono)' }}>
+        {/* Autosave Status Indicator / Force Save Trigger */}
+        <button
+          id="btn-header-save"
+          type="button"
+          onClick={() => onManualSave?.()}
+          style={{
+            background: 'none',
+            border: 'none',
+            padding: '2px 6px',
+            borderRadius: 'var(--radius-sm)',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            fontSize: '11px',
+            fontFamily: 'var(--font-mono)'
+          }}
+          title="Autosaved. Click to force save immediately"
+        >
           {saveStatus === 'saving' && (
             <span style={{ color: '#60A5FA', display: 'flex', alignItems: 'center', gap: '4px' }}>
               <Loader2 size={12} className="animate-spin" />
@@ -180,7 +200,7 @@ export default function EditorHeader({
               )}
             </span>
           )}
-        </div>
+        </button>
       </div>
 
       {/* Middle: View Mode Toggle (Doc Only, Split, Canvas Only) */}
@@ -282,7 +302,8 @@ export default function EditorHeader({
 
         {/* Export Modal Button */}
         <button
-          id="btn-open-export-modal"
+          id="btn-header-export"
+          data-testid="btn-open-export-modal"
           onClick={onOpenExportModal}
           className="btn"
           style={{
@@ -303,7 +324,8 @@ export default function EditorHeader({
 
         {/* Share View-Only Modal Button */}
         <button
-          id="btn-open-share-modal"
+          id="btn-header-share"
+          data-testid="btn-open-share-modal"
           onClick={onOpenShareModal}
           className="btn"
           style={{
@@ -324,7 +346,8 @@ export default function EditorHeader({
 
         {/* Version History Toggle Button */}
         <button
-          id="btn-toggle-version-history"
+          id="btn-header-version-history"
+          data-testid="btn-toggle-version-history"
           onClick={onToggleVersions}
           className="btn"
           style={{

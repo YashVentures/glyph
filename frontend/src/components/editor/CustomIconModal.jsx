@@ -242,6 +242,7 @@ export default function CustomIconModal({
 
             <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
               <input
+                id="input-custom-icon-name"
                 type="text"
                 value={name}
                 onChange={e => setName(e.target.value)}
@@ -261,6 +262,7 @@ export default function CustomIconModal({
                 <Upload size={14} />
                 <span>Select SVG</span>
                 <input
+                  id="input-custom-icon-file"
                   ref={fileInputRef}
                   type="file"
                   accept=".svg,image/svg+xml"
@@ -284,6 +286,7 @@ export default function CustomIconModal({
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '4px' }}>
               <button
+                id="btn-submit-upload-icon"
                 type="submit"
                 disabled={uploading || !name.trim() || !svgContent.trim()}
                 className="btn btn-primary"

@@ -1,13 +1,20 @@
 // Tokenizer for Eraser Diagram-as-Code grammar
 // Extracts lines, preserves 1-based sourceLineNumber, and parses tokens & attribute blocks
 
+export const MAX_LINE_LENGTH = 20000;
+
 export function tokenize(source) {
   const rawLines = (source || '').split(/\r?\n/);
   const lines = [];
 
   for (let i = 0; i < rawLines.length; i++) {
-    const raw = rawLines[i];
+    let raw = rawLines[i];
     const lineNumber = i + 1;
+
+    // Safety guard against extremely long individual lines
+    if (raw.length > MAX_LINE_LENGTH) {
+      raw = raw.slice(0, MAX_LINE_LENGTH);
+    }
 
     // Strip inline comments: // or %%
     let content = raw;
@@ -67,17 +74,19 @@ export function extractAttributeBlock(str) {
     }
   }
 
+  const snippet = str.length > 60 ? `${str.slice(0, 57)}...` : str;
+
   if (openCount !== closeCount) {
-    throw new Error(`Unmatched square brackets in line: "${str}"`);
+    throw new Error(`Unmatched square brackets in line: "${snippet}"`);
   }
 
   if (openCount > 1) {
-    throw new Error(`Multiple or nested square bracket blocks are not supported in line: "${str}"`);
+    throw new Error(`Multiple or nested square bracket blocks are not supported in line: "${snippet}"`);
   }
 
   if (openCount === 1) {
     if (lastClose < firstOpen) {
-      throw new Error(`Invalid bracket order in line: "${str}"`);
+      throw new Error(`Invalid bracket order in line: "${snippet}"`);
     }
     const attrString = str.slice(firstOpen + 1, lastClose).trim();
     const before = str.slice(0, firstOpen).trim();

@@ -40,7 +40,7 @@ export function renderDiagramToSVG(astOrResult, options = {}) {
 // 1. FLOWCHART & CLOUD ARCHITECTURE RENDERER
 // ----------------------------------------------------
 function renderFlowchartSVG(ast, options = {}) {
-  const { padding = 40, theme = 'dark', customIcons = {} } = options;
+  const { padding = 40, theme = 'dark', customIcons = {}, nodePositions = {} } = options;
   const g = new dagre.graphlib.Graph({ compound: true });
   const isLR = ast.direction === 'right';
   const rankDir = {
@@ -113,10 +113,65 @@ function renderFlowchartSVG(ast, options = {}) {
   // Run Dagre Layout
   dagre.layout(g);
 
-  // Compute bounding box
+  // Apply manual node position overrides if any
+  const nodeDeltas = {};
+  if (nodePositions && typeof nodePositions === 'object' && Object.keys(nodePositions).length > 0) {
+    g.nodes().forEach((nodeId) => {
+      const nodeObj = g.node(nodeId);
+      if (!nodeObj || !nodeObj.nodeData) return;
+      if (nodePositions[nodeId]) {
+        const origX = nodeObj.x;
+        const origY = nodeObj.y;
+        const newX = nodePositions[nodeId].x;
+        const newY = nodePositions[nodeId].y;
+        nodeObj.x = newX;
+        nodeObj.y = newY;
+        nodeDeltas[nodeId] = { dx: newX - origX, dy: newY - origY };
+      }
+    });
+
+    // Shift edge points connected to moved nodes
+    g.edges().forEach((e) => {
+      const edgeObj = g.edge(e);
+      const points = edgeObj.points || [];
+      if (points.length < 2) return;
+      const srcDelta = nodeDeltas[e.v];
+      const tgtDelta = nodeDeltas[e.w];
+      if (srcDelta) {
+        points[0].x += srcDelta.dx;
+        points[0].y += srcDelta.dy;
+        if (points.length > 2) {
+          points[1].x += srcDelta.dx * 0.5;
+          points[1].y += srcDelta.dy * 0.5;
+        }
+      }
+      if (tgtDelta) {
+        points[points.length - 1].x += tgtDelta.dx;
+        points[points.length - 1].y += tgtDelta.dy;
+        if (points.length > 2) {
+          points[points.length - 2].x += tgtDelta.dx * 0.5;
+          points[points.length - 2].y += tgtDelta.dy * 0.5;
+        }
+      }
+    });
+  }
+
+  // Compute dynamic bounding box
   const graphMeta = g.graph();
-  const width = Math.max(500, (graphMeta.width || 600) + padding * 2);
-  const height = Math.max(300, (graphMeta.height || 400) + padding * 2);
+  let maxW = Math.max(500, (graphMeta.width || 600) + padding * 2);
+  let maxH = Math.max(300, (graphMeta.height || 400) + padding * 2);
+
+  g.nodes().forEach((nodeId) => {
+    const nodeObj = g.node(nodeId);
+    if (!nodeObj) return;
+    const right = nodeObj.x + (nodeObj.width || 140) / 2 + padding;
+    const bottom = nodeObj.y + (nodeObj.height || 50) / 2 + padding;
+    if (right > maxW) maxW = right;
+    if (bottom > maxH) maxH = bottom;
+  });
+
+  const width = Math.ceil(maxW);
+  const height = Math.ceil(maxH);
 
   // SVG Header & Defs
   const defs = getSharedSvgDefs(ast.typeface, ast.styleMode);
@@ -479,7 +534,8 @@ function renderSequenceSVG(ast, { padding, theme }) {
 // ----------------------------------------------------
 // 3. ENTITY RELATIONSHIP (ERD) RENDERER
 // ----------------------------------------------------
-function renderErdSVG(ast, { padding, theme }) {
+function renderErdSVG(ast, options = {}) {
+  const { padding = 40, theme = 'dark', nodePositions = {} } = options;
   const g = new dagre.graphlib.Graph();
   g.setGraph({
     rankdir: 'LR',
@@ -513,9 +569,63 @@ function renderErdSVG(ast, { padding, theme }) {
 
   dagre.layout(g);
 
+  // Apply manual table position overrides if any
+  const tableDeltas = {};
+  if (nodePositions && typeof nodePositions === 'object' && Object.keys(nodePositions).length > 0) {
+    g.nodes().forEach((tableName) => {
+      const nodeObj = g.node(tableName);
+      if (!nodeObj || !nodeObj.tableData) return;
+      if (nodePositions[tableName]) {
+        const origX = nodeObj.x;
+        const origY = nodeObj.y;
+        const newX = nodePositions[tableName].x;
+        const newY = nodePositions[tableName].y;
+        nodeObj.x = newX;
+        nodeObj.y = newY;
+        tableDeltas[tableName] = { dx: newX - origX, dy: newY - origY };
+      }
+    });
+
+    g.edges().forEach((e) => {
+      const edgeObj = g.edge(e);
+      const points = edgeObj.points || [];
+      if (points.length < 2) return;
+      const srcDelta = tableDeltas[e.v];
+      const tgtDelta = tableDeltas[e.w];
+      if (srcDelta) {
+        points[0].x += srcDelta.dx;
+        points[0].y += srcDelta.dy;
+        if (points.length > 2) {
+          points[1].x += srcDelta.dx * 0.5;
+          points[1].y += srcDelta.dy * 0.5;
+        }
+      }
+      if (tgtDelta) {
+        points[points.length - 1].x += tgtDelta.dx;
+        points[points.length - 1].y += tgtDelta.dy;
+        if (points.length > 2) {
+          points[points.length - 2].x += tgtDelta.dx * 0.5;
+          points[points.length - 2].y += tgtDelta.dy * 0.5;
+        }
+      }
+    });
+  }
+
   const graphMeta = g.graph();
-  const width = Math.max(600, (graphMeta.width || 700) + padding * 2);
-  const height = Math.max(400, (graphMeta.height || 500) + padding * 2);
+  let maxW = Math.max(600, (graphMeta.width || 700) + padding * 2);
+  let maxH = Math.max(400, (graphMeta.height || 500) + padding * 2);
+
+  g.nodes().forEach((tableName) => {
+    const nodeObj = g.node(tableName);
+    if (!nodeObj) return;
+    const right = nodeObj.x + (nodeObj.width || 220) / 2 + padding;
+    const bottom = nodeObj.y + (nodeObj.height || 100) / 2 + padding;
+    if (right > maxW) maxW = right;
+    if (bottom > maxH) maxH = bottom;
+  });
+
+  const width = Math.ceil(maxW);
+  const height = Math.ceil(maxH);
 
   const defs = getSharedSvgDefs(ast.typeface, ast.styleMode);
 
@@ -611,41 +721,41 @@ function renderErdSVG(ast, { padding, theme }) {
 
     let rowsSvg = '';
     (table.fields || []).forEach((f, idx) => {
-      const rowY = ty + headerHeight + (idx * rowHeight);
+      const relY = headerHeight + (idx * rowHeight);
       rowsSvg += `
         <g data-source-line="${f.sourceLineNumber || table.sourceLineNumber}">
-          <text x="${tx + 12}" y="${rowY + 16}" fill="#F1F5F9" font-size="${Math.round(12 * textScale)}" font-family="${getFontFamily(ast.typeface)}" font-weight="${f.isPk ? '700' : '500'}">
+          <text x="12" y="${relY + 16}" fill="#F1F5F9" font-size="${Math.round(12 * textScale)}" font-family="${getFontFamily(ast.typeface)}" font-weight="${f.isPk ? '700' : '500'}">
             ${escapeXml(f.name)}
           </text>
-          <text x="${tx + tw - 58}" y="${rowY + 16}" fill="#64748B" font-size="${Math.round(11 * textScale)}" font-family="var(--font-mono, monospace)">
+          <text x="${tw - 58}" y="${relY + 16}" fill="#64748B" font-size="${Math.round(11 * textScale)}" font-family="var(--font-mono, monospace)">
             ${escapeXml(f.type)}
           </text>
           ${f.isPk ? `
-            <rect x="${tx + tw - 32}" y="${rowY + 5}" width="22" height="14" rx="3" fill="rgba(245, 158, 11, 0.2)" stroke="#F59E0B" stroke-width="0.7"/>
-            <text x="${tx + tw - 21}" y="${rowY + 15}" fill="#FCD34D" font-size="9" font-weight="700" text-anchor="middle">PK</text>
+            <rect x="${tw - 32}" y="${relY + 5}" width="22" height="14" rx="3" fill="rgba(245, 158, 11, 0.2)" stroke="#F59E0B" stroke-width="0.7"/>
+            <text x="${tw - 21}" y="${relY + 15}" fill="#FCD34D" font-size="9" font-weight="700" text-anchor="middle">PK</text>
           ` : f.isFk ? `
-            <rect x="${tx + tw - 32}" y="${rowY + 5}" width="22" height="14" rx="3" fill="rgba(59, 130, 246, 0.2)" stroke="#3B82F6" stroke-width="0.7"/>
-            <text x="${tx + tw - 21}" y="${rowY + 15}" fill="#93C5FD" font-size="9" font-weight="700" text-anchor="middle">FK</text>
+            <rect x="${tw - 32}" y="${relY + 5}" width="22" height="14" rx="3" fill="rgba(59, 130, 246, 0.2)" stroke="#3B82F6" stroke-width="0.7"/>
+            <text x="${tw - 21}" y="${relY + 15}" fill="#93C5FD" font-size="9" font-weight="700" text-anchor="middle">FK</text>
           ` : f.isUnique ? `
-            <rect x="${tx + tw - 32}" y="${rowY + 5}" width="22" height="14" rx="3" fill="rgba(139, 92, 246, 0.2)" stroke="#8B5CF6" stroke-width="0.7"/>
-            <text x="${tx + tw - 21}" y="${rowY + 15}" fill="#C4B5FD" font-size="9" font-weight="700" text-anchor="middle">UQ</text>
+            <rect x="${tw - 32}" y="${relY + 5}" width="22" height="14" rx="3" fill="rgba(139, 92, 246, 0.2)" stroke="#8B5CF6" stroke-width="0.7"/>
+            <text x="${tw - 21}" y="${relY + 15}" fill="#C4B5FD" font-size="9" font-weight="700" text-anchor="middle">UQ</text>
           ` : ''}
         </g>
       `;
     });
 
     tablesSvg += `
-      <g class="diagram-table" data-source-line="${table.sourceLineNumber || 1}" data-table-name="${escapeXml(table.name)}">
+      <g class="diagram-table" data-source-line="${table.sourceLineNumber || 1}" data-table-name="${escapeXml(table.name)}" transform="translate(${tx}, ${ty})">
         <!-- Table Card Container -->
-        <rect x="${tx}" y="${ty}" width="${tw}" height="${th}" rx="8" ry="8"
+        <rect x="0" y="0" width="${tw}" height="${th}" rx="8" ry="8"
           fill="#1A1C23" stroke="${color.stroke}" stroke-width="1.5"
           ${filterAttr}
         />
         <!-- Table Header Bar -->
-        <path d="M ${tx} ${ty + 8} Q ${tx} ${ty} ${tx + 8} ${ty} L ${tx + tw - 8} ${ty} Q ${tx + tw} ${ty} ${tx + tw} ${ty + 8} L ${tx + tw} ${ty + headerHeight} L ${tx} ${ty + headerHeight} Z"
+        <path d="M 0 8 Q 0 0 8 0 L ${tw - 8} 0 Q ${tw} 0 ${tw} 8 L ${tw} ${headerHeight} L 0 ${headerHeight} Z"
           fill="${color.fill}" stroke="${color.stroke}" stroke-width="1.5"
         />
-        <text x="${tx + 12}" y="${ty + 23}" fill="${color.text}" font-size="${Math.round(13 * textScale)}" font-weight="700" font-family="${getFontFamily(ast.typeface)}">
+        <text x="12" y="23" fill="${color.text}" font-size="${Math.round(13 * textScale)}" font-weight="700" font-family="${getFontFamily(ast.typeface)}">
           ${escapeXml(table.label || table.name)}
         </text>
         ${rowsSvg}

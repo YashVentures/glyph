@@ -11,6 +11,7 @@ import VersionHistoryDrawer from '../../components/editor/VersionHistoryDrawer';
 import AIPromptModal from '../../components/editor/AIPromptModal';
 import ExportModal from '../../components/editor/ExportModal';
 import ShareModal from '../../components/editor/ShareModal';
+import { ErrorBoundary } from '../../components/ErrorBoundary';
 import { getFile, updateFile } from '@/lib/api/client';
 import { AlertTriangle, RotateCcw, X, Eye, Sparkles } from 'lucide-react';
 
@@ -306,14 +307,83 @@ export default function WorkspacePage() {
     scheduleAutosave();
   };
 
+  // Step 15: Undo & Redo History for Canvas Edits & Code Sync
+  const undoStackRef = useRef([]);
+  const redoStackRef = useRef([]);
+
+  const pushToHistory = useCallback((prevCanvas) => {
+    try {
+      const serialized = JSON.stringify(prevCanvas);
+      undoStackRef.current.push(serialized);
+      if (undoStackRef.current.length > 50) {
+        undoStackRef.current.shift();
+      }
+      redoStackRef.current = [];
+    } catch (e) {
+      console.warn('Failed to snapshot undo state', e);
+    }
+  }, []);
+
+  const handleUndo = useCallback(() => {
+    if (undoStackRef.current.length === 0) return;
+    const previous = undoStackRef.current.pop();
+    try {
+      const current = JSON.stringify(canvasData);
+      redoStackRef.current.push(current);
+      const restored = JSON.parse(previous);
+      setCanvasData(restored);
+      scheduleAutosave();
+    } catch (e) {
+      console.error('Failed to undo canvas edit', e);
+    }
+  }, [canvasData, scheduleAutosave]);
+
+  const handleRedo = useCallback(() => {
+    if (redoStackRef.current.length === 0) return;
+    const next = redoStackRef.current.pop();
+    try {
+      const current = JSON.stringify(canvasData);
+      undoStackRef.current.push(current);
+      const restored = JSON.parse(next);
+      setCanvasData(restored);
+      scheduleAutosave();
+    } catch (e) {
+      console.error('Failed to redo canvas edit', e);
+    }
+  }, [canvasData, scheduleAutosave]);
+
+  // Global Keyboard listener for Ctrl+Z / Ctrl+Shift+Z / Cmd+Z / Cmd+Shift+Z
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      const target = e.target;
+      const isInput = target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable || target.closest?.('.monaco-editor'));
+      
+      const isUndo = (e.ctrlKey || e.metaKey) && !e.shiftKey && (e.key === 'z' || e.key === 'Z');
+      const isRedo = (e.ctrlKey || e.metaKey) && ((e.shiftKey && (e.key === 'z' || e.key === 'Z')) || e.key === 'y' || e.key === 'Y');
+
+      if (isUndo && !isInput) {
+        e.preventDefault();
+        handleUndo();
+      } else if (isRedo && !isInput) {
+        e.preventDefault();
+        handleRedo();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleUndo, handleRedo]);
+
   // Canvas structure edit (triggers debounced autosave)
   const handleCanvasChange = (newCanvas) => {
+    pushToHistory(canvasData);
     setCanvasData(newCanvas);
     scheduleAutosave();
   };
 
   // Diagram code edit from Monaco drawer (triggers debounced autosave)
   const handleCodeChange = (diagramId, newCode) => {
+    pushToHistory(canvasData);
     setCanvasData(prev => {
       const nextDiagrams = (prev.diagrams || []).map(d => {
         if (d.id === diagramId) {
@@ -458,6 +528,7 @@ export default function WorkspacePage() {
         diagramCount={diagrams.length}
         activeDiagramId={selectedDiagramId}
         saveStatus={saveStatus}
+        onManualSave={() => performSave()}
         onRetrySave={() => performSave()}
         onResolveConflict={() => setConflictModalOpen(true)}
         isVersionsOpen={isVersionsOpen}
@@ -513,29 +584,31 @@ export default function WorkspacePage() {
         </div>
       )}
 
-      {/* Resizable Editor Shell (Doc Pane + Canvas Pane) */}
+      {/* Resizable Editor Shell (Doc Pane + Canvas Pane) wrapped in ErrorBoundary */}
       <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
-        <ResizableSplit
-          viewMode={viewMode}
-          leftPane={
-            <DocPane
-              docContent={activeDocContent}
-              onChange={previewingVersion ? () => {} : handleDocChange}
-              fileTitle={file.title}
-            />
-          }
-          rightPane={
-            <CanvasPane
-              canvasData={activeCanvasData}
-              onChange={previewingVersion ? () => {} : handleCanvasChange}
-              selectedDiagramId={selectedDiagramId}
-              onSelectDiagram={(id) => {
-                setSelectedDiagramId(id);
-              }}
-              onOpenCodeDrawer={() => setIsCodeDrawerOpen(true)}
-            />
-          }
-        />
+        <ErrorBoundary name="Editor Workspace" minHeight="400px">
+          <ResizableSplit
+            viewMode={viewMode}
+            leftPane={
+              <DocPane
+                docContent={activeDocContent}
+                onChange={previewingVersion ? () => {} : handleDocChange}
+                fileTitle={file.title}
+              />
+            }
+            rightPane={
+              <CanvasPane
+                canvasData={activeCanvasData}
+                onChange={previewingVersion ? () => {} : handleCanvasChange}
+                selectedDiagramId={selectedDiagramId}
+                onSelectDiagram={(id) => {
+                  setSelectedDiagramId(id);
+                }}
+                onOpenCodeDrawer={() => setIsCodeDrawerOpen(true)}
+              />
+            }
+          />
+        </ErrorBoundary>
 
         {/* Diagram Code Drawer (Monaco bound to selected diagram) */}
         <CodeDrawer
@@ -574,7 +647,9 @@ export default function WorkspacePage() {
           padding: '20px',
           zIndex: 100
         }}>
-          <div style={{
+          <div 
+            id="conflict-modal"
+            style={{
             backgroundColor: '#1E222D',
             border: '1px solid #F59E0B',
             borderRadius: 'var(--radius-lg)',
@@ -613,6 +688,7 @@ export default function WorkspacePage() {
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '6px' }}>
               <button
+                id="btn-conflict-reload"
                 onClick={handleReloadServerVersion}
                 className="btn btn-secondary"
                 style={{ height: '32px', fontSize: '12px' }}
@@ -620,6 +696,7 @@ export default function WorkspacePage() {
                 Reload Server Version
               </button>
               <button
+                id="btn-conflict-overwrite"
                 onClick={handleOverwriteServerVersion}
                 className="btn btn-primary"
                 style={{ height: '32px', fontSize: '12px', backgroundColor: '#F59E0B', borderColor: '#D97706' }}

@@ -33,6 +33,7 @@ export function CreateFileModal({ isOpen, onClose, onSubmit, folders = [] }) {
                 File Title
               </label>
               <input 
+                id="input-create-file-title"
                 type="text"
                 autoFocus
                 value={title}
@@ -61,7 +62,7 @@ export function CreateFileModal({ isOpen, onClose, onSubmit, folders = [] }) {
           </div>
           <div className="modal-footer">
             <button type="button" onClick={onClose} className="btn btn-secondary">Cancel</button>
-            <button type="submit" className="btn btn-primary">Create File</button>
+            <button id="btn-submit-create-file" type="submit" className="btn btn-primary">Create File</button>
           </div>
         </form>
       </div>
